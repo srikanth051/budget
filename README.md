@@ -42,4 +42,4 @@ The app aims to utilize Firebase Firestore for seamless data synchronization. Fi
 
 1. **Clone the Repository:**
    ```bash
-   git clone https://github.com/your-username/financial_goal_tracker.git
+   git clone https://github.com/srikanth051/budget.git
