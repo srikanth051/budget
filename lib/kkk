@@ -1,0 +1,147 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
+}
+
+class FinancialGoalDetailScreen extends StatefulWidget {
+  @override
+  _FinancialGoalDetailScreenState createState() =>
+      _FinancialGoalDetailScreenState();
+}
+
+class _FinancialGoalDetailScreenState extends State<FinancialGoalDetailScreen> {
+  double _targetAmount = 100000;
+  double _totalAmountSaved = 0; // Initialize to 0 initially
+  double _progressPercentage = 0.0;
+  DateTime _expectedCompletionDate = DateTime(2023, 12, 31);
+  List<Map<String, dynamic>> _contributionHistory = [];
+
+  Future<void> _fetchGoalData() async {
+    try {
+      DocumentSnapshot goalSnapshot = await FirebaseFirestore.instance
+          .collection('goals')
+          .doc('yhaEoZf3gKtOVie7LfhX') // Replace with the actual document ID
+          .get();
+
+      setState(() {
+        _totalAmountSaved = goalSnapshot['totalAmountSaved'];
+        _targetAmount = goalSnapshot['targetAmount'];
+        _progressPercentage = _totalAmountSaved / _targetAmount;
+        _expectedCompletionDate = goalSnapshot['expectedCompletionDate'].toDate();
+      });
+    } catch (e) {
+      print('Error fetching goal data: $e');
+    }
+  }
+
+  Future<void> _fetchContributionHistory() async {
+    try {
+      QuerySnapshot contributionsSnapshot = await FirebaseFirestore.instance
+          .collection('goals')
+          .doc('your_goal_document_id') // Replace with the actual document ID
+          .collection('contributions')
+          .orderBy('date', descending: true)
+          .get();
+
+      setState(() {
+        _contributionHistory = contributionsSnapshot.docs
+            .map((doc) => {'date': doc['date'].toDate(), 'amount': doc['amount']})
+            .toList();
+      });
+    } catch (e) {
+      print('Error fetching contribution history: $e');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchGoalData();
+    _fetchContributionHistory();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Financial Goal Tracker',
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text('Financial Goal Details'),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Goal progress
+              Text(
+                'Goal Progress',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 16),
+              Container(
+                width: 200,
+                height: 200,
+                child: CircularProgressIndicator(
+                  value: _progressPercentage,
+                ),
+              ),
+              SizedBox(height: 24),
+              // Goal details
+              Text(
+                'Goal Details',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 16),
+              Text('Total Amount Saved: $_totalAmountSaved'),
+              Text('Target Amount: $_targetAmount'),
+              Text('Expected Completion Date: $_expectedCompletionDate'),
+              SizedBox(height: 24),
+              // Contribution history
+              Text(
+                'Contribution History',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 16),
+              ListView.builder(
+                shrinkWrap: true,
+                itemCount: _contributionHistory.length,
+                itemBuilder: (context, index) {
+                  final contribution = _contributionHistory[index];
+                  return ListTile(
+                    leading: Text(contribution['date'].toString()),
+                    title: Text('Amount: ${contribution['amount']}'),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Financial Goal Tracker',
+      home: FinancialGoalDetailScreen(),
+    );
+  }
+}
